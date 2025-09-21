@@ -15,5 +15,6 @@ public class Receipt {
     private ReceiptStatus status;
     private ShippingAddress shippingAddress;
     private List<Item> items;
+    private Customer customer;
 }
 
