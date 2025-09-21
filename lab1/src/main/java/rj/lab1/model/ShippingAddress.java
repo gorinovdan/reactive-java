@@ -1,6 +1,6 @@
 package rj.lab1.model;
 
-record ShippingAddress(
+public record ShippingAddress(
         String addressLine1,
         String addressLine2,
         String city,

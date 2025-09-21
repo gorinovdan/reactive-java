@@ -1,5 +1,5 @@
 package rj.lab1.model;
 
-enum ReceiptStatus {
+public enum ReceiptStatus {
     PAID, PENDING, DELIVERED, FAILED
 }
