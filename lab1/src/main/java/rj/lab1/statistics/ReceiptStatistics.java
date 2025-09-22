@@ -26,6 +26,7 @@ public class ReceiptStatistics {
     private List<CustomerSpending> topCustomersBySpending;
     private List<CustomerOrderProfile> topCustomersByOrderCount;
     private List<ItemSales> topItemsByQuantity;
+    private List<ItemAverageReceipt> itemAverageReceipts;
     private List<CityRevenue> topCitiesByRevenue;
     private List<StatusRevenue> revenueByStatusRanking;
     private List<PriceTierSales> salesByPriceTier;
@@ -47,6 +48,7 @@ public class ReceiptStatistics {
         joiner.add("topCustomersBySpending=" + topCustomersBySpending);
         joiner.add("topCustomersByOrderCount=" + topCustomersByOrderCount);
         joiner.add("topItemsByQuantity=" + topItemsByQuantity);
+        joiner.add("itemAverageReceipts=" + itemAverageReceipts);
         joiner.add("topCitiesByRevenue=" + topCitiesByRevenue);
         joiner.add("revenueByStatusRanking=" + revenueByStatusRanking);
         joiner.add("salesByPriceTier=" + salesByPriceTier);

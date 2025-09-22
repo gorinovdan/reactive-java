@@ -48,6 +48,22 @@ public final class TopMetrics {
                 .toList();
     }
 
+    public static List<ItemAverageReceipt> calculateItemAverageReceipts(
+            Map<String, Long> receiptCountByItem,
+            Map<String, Double> orderTotalsByItem) {
+        return receiptCountByItem.entrySet().stream()
+                .filter(entry -> entry.getValue() > 2)
+                .map(entry -> {
+                    String itemName = entry.getKey();
+                    long receiptCount = entry.getValue();
+                    double totalOrderAmount = orderTotalsByItem.getOrDefault(itemName, 0.0);
+                    double averageReceipt = receiptCount > 0 ? totalOrderAmount / receiptCount : 0.0;
+                    return new ItemAverageReceipt(itemName, receiptCount, averageReceipt);
+                })
+                .sorted(ItemAverageReceipt.byAverageReceiptDescending())
+                .toList();
+    }
+
     public static List<CityRevenue> calculateTopCities(Map<String, Double> revenueByCity,
             Map<String, Long> ordersByCity) {
         return calculateTopCities(revenueByCity, ordersByCity, DEFAULT_TOP_LIMIT);

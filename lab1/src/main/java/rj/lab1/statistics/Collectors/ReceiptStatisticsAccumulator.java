@@ -29,6 +29,8 @@ public class ReceiptStatisticsAccumulator {
     Map<String, Long> ordersByCustomer = new HashMap<>();
     Map<String, Long> itemQuantityByName = new HashMap<>();
     Map<String, Double> itemRevenueByName = new HashMap<>();
+    Map<String, Long> itemReceiptCountByName = new HashMap<>();
+    Map<String, Double> itemReceiptTotalByName = new HashMap<>();
     Map<String, Double> revenueByCity = new HashMap<>();
     Map<String, Long> ordersByCity = new HashMap<>();
     Map<ReceiptStatus, Double> revenueByStatus = new EnumMap<>(ReceiptStatus.class);
@@ -42,16 +44,23 @@ public class ReceiptStatisticsAccumulator {
 
         double orderTotal = 0;
         long itemsInOrder = 0;
+        Set<String> itemsInReceipt = new HashSet<>();
         for (Item item : r.getItems()) {
             double itemRevenue = item.getUnitPrice() * item.getQuantity();
             orderTotal += itemRevenue;
             itemsInOrder += item.getQuantity();
             itemQuantityByName.merge(item.getName(), (long) item.getQuantity(), Long::sum);
             itemRevenueByName.merge(item.getName(), itemRevenue, Double::sum);
+            itemsInReceipt.add(item.getName());
 
             PriceTier tier = PriceTier.fromUnitPrice(item.getUnitPrice());
             quantityByPriceTier.merge(tier, (long) item.getQuantity(), Long::sum);
             revenueByPriceTier.merge(tier, itemRevenue, Double::sum);
+        }
+
+        for (String itemName : itemsInReceipt) {
+            itemReceiptCountByName.merge(itemName, 1L, Long::sum);
+            itemReceiptTotalByName.merge(itemName, orderTotal, Double::sum);
         }
 
         totalRevenue += orderTotal;
@@ -100,6 +109,8 @@ public class ReceiptStatisticsAccumulator {
         other.ordersByCustomer.forEach((k, v) -> ordersByCustomer.merge(k, v, Long::sum));
         other.itemQuantityByName.forEach((k, v) -> itemQuantityByName.merge(k, v, Long::sum));
         other.itemRevenueByName.forEach((k, v) -> itemRevenueByName.merge(k, v, Double::sum));
+        other.itemReceiptCountByName.forEach((k, v) -> itemReceiptCountByName.merge(k, v, Long::sum));
+        other.itemReceiptTotalByName.forEach((k, v) -> itemReceiptTotalByName.merge(k, v, Double::sum));
         other.revenueByCity.forEach((k, v) -> revenueByCity.merge(k, v, Double::sum));
         other.ordersByCity.forEach((k, v) -> ordersByCity.merge(k, v, Long::sum));
         other.revenueByStatus.forEach((k, v) -> revenueByStatus.merge(k, v, Double::sum));
@@ -130,6 +141,8 @@ public class ReceiptStatisticsAccumulator {
         stats.setTopCustomersByOrderCount(
                 TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
         stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
+        stats.setItemAverageReceipts(
+                TopMetrics.calculateItemAverageReceipts(itemReceiptCountByName, itemReceiptTotalByName));
         stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
         stats.setRevenueByStatusRanking(TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
         stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));

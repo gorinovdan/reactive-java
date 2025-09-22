@@ -4,6 +4,7 @@ import java.util.DoubleSummaryStatistics;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import rj.lab1.model.Item;
@@ -80,6 +81,26 @@ public class ReceiptStatisticsStreamAggregator {
                                                 Collectors.summingDouble(
                                                                 ReceiptStatisticsStreamAggregator::itemRevenue)));
 
+                Map<String, Long> itemReceiptCountByName = receipts.stream()
+                                .flatMap(r -> r.getItems().stream()
+                                                .map(Item::getName)
+                                                .distinct())
+                                .collect(Collectors.groupingBy(
+                                                Function.identity(),
+                                                Collectors.counting()));
+
+                Map<String, Double> itemReceiptTotalByName = receipts.stream()
+                                .flatMap(r -> {
+                                        double total = orderTotal(r);
+                                        return r.getItems().stream()
+                                                        .map(Item::getName)
+                                                        .distinct()
+                                                        .map(itemName -> Map.entry(itemName, total));
+                                })
+                                .collect(Collectors.groupingBy(
+                                                Map.Entry::getKey,
+                                                Collectors.summingDouble(Map.Entry::getValue)));
+
                 Map<String, Double> revenueByCity = receipts.stream()
                                 .collect(Collectors.groupingBy(
                                                 r -> r.getShippingAddress().city(),
@@ -142,6 +163,10 @@ public class ReceiptStatisticsStreamAggregator {
                 stats.setTopCustomersByOrderCount(
                                 TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
                 stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
+                stats.setItemAverageReceipts(
+                                TopMetrics.calculateItemAverageReceipts(
+                                                itemReceiptCountByName,
+                                                itemReceiptTotalByName));
                 stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
                 stats.setRevenueByStatusRanking(TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
                 stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));
