@@ -1,10 +1,15 @@
 package rj.lab1.statistics;
 
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
 import rj.lab1.model.ReceiptStatus;
-
-import java.util.*;
 
 public class ReceiptStatisticsIterateCircleAggregator {
 
@@ -13,14 +18,14 @@ public class ReceiptStatisticsIterateCircleAggregator {
 
         // агрегаты
         double totalRevenue = 0;
-        double minReceipt = Double.MAX_VALUE;
-        double maxReceipt = Double.MIN_VALUE;
+        double minReceipt = Double.POSITIVE_INFINITY;
+        double maxReceipt = Double.NEGATIVE_INFINITY;
 
         long totalOrders = 0;
         long totalItemsSold = 0;
         long totalLoyaltyPoints = 0;
 
-        Map<ReceiptStatus, Long> ordersByStatus = new HashMap<>();
+        Map<ReceiptStatus, Long> ordersByStatus = new EnumMap<>(ReceiptStatus.class);
         Map<Integer, Double> revenueByMonth = new HashMap<>();
         Set<String> uniqueCustomers = new HashSet<>();
 
@@ -65,4 +70,3 @@ public class ReceiptStatisticsIterateCircleAggregator {
         return stats;
     }
 }
-
