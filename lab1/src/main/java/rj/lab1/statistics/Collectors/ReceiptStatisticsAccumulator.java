@@ -9,7 +9,9 @@ import java.util.Set;
 import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
 import rj.lab1.model.ReceiptStatus;
+import rj.lab1.statistics.PriceTier;
 import rj.lab1.statistics.ReceiptStatistics;
+import rj.lab1.statistics.TopMetrics;
 
 public class ReceiptStatisticsAccumulator {
     long totalOrders = 0;
@@ -23,6 +25,17 @@ public class ReceiptStatisticsAccumulator {
     Map<ReceiptStatus, Long> ordersByStatus = new EnumMap<>(ReceiptStatus.class);
     Map<Integer, Double> revenueByMonth = new HashMap<>();
     Set<String> uniqueCustomers = new HashSet<>();
+    Map<String, Double> revenueByCustomer = new HashMap<>();
+    Map<String, Long> ordersByCustomer = new HashMap<>();
+    Map<String, Long> itemQuantityByName = new HashMap<>();
+    Map<String, Double> itemRevenueByName = new HashMap<>();
+    Map<String, Double> revenueByCity = new HashMap<>();
+    Map<String, Long> ordersByCity = new HashMap<>();
+    Map<ReceiptStatus, Double> revenueByStatus = new EnumMap<>(ReceiptStatus.class);
+    Map<PriceTier, Long> quantityByPriceTier = new EnumMap<>(PriceTier.class);
+    Map<PriceTier, Double> revenueByPriceTier = new EnumMap<>(PriceTier.class);
+    Map<String, Double> revenueByState = new HashMap<>();
+    Map<String, Long> ordersByState = new HashMap<>();
 
     void add(Receipt r) {
         totalOrders++;
@@ -30,8 +43,15 @@ public class ReceiptStatisticsAccumulator {
         double orderTotal = 0;
         long itemsInOrder = 0;
         for (Item item : r.getItems()) {
-            orderTotal += item.getTotalPrice();
+            double itemRevenue = item.getUnitPrice() * item.getQuantity();
+            orderTotal += itemRevenue;
             itemsInOrder += item.getQuantity();
+            itemQuantityByName.merge(item.getName(), (long) item.getQuantity(), Long::sum);
+            itemRevenueByName.merge(item.getName(), itemRevenue, Double::sum);
+
+            PriceTier tier = PriceTier.fromUnitPrice(item.getUnitPrice());
+            quantityByPriceTier.merge(tier, (long) item.getQuantity(), Long::sum);
+            revenueByPriceTier.merge(tier, itemRevenue, Double::sum);
         }
 
         totalRevenue += orderTotal;
@@ -43,10 +63,22 @@ public class ReceiptStatisticsAccumulator {
         totalLoyaltyPoints += r.getLoyaltyPointsEarned();
 
         ordersByStatus.merge(r.getStatus(), 1L, Long::sum);
+        revenueByStatus.merge(r.getStatus(), orderTotal, Double::sum);
 
         revenueByMonth.merge(r.getDate().getMonthValue(), orderTotal, Double::sum);
 
-        uniqueCustomers.add(r.getCustomer().getFirstName() + " " + r.getCustomer().getLastName());
+        String customerKey = r.getCustomer().getFirstName() + " " + r.getCustomer().getLastName();
+        uniqueCustomers.add(customerKey);
+        revenueByCustomer.merge(customerKey, orderTotal, Double::sum);
+        ordersByCustomer.merge(customerKey, 1L, Long::sum);
+
+        String city = r.getShippingAddress().city();
+        revenueByCity.merge(city, orderTotal, Double::sum);
+        ordersByCity.merge(city, 1L, Long::sum);
+
+        String state = r.getShippingAddress().state();
+        revenueByState.merge(state, orderTotal, Double::sum);
+        ordersByState.merge(state, 1L, Long::sum);
     }
 
     ReceiptStatisticsAccumulator combine(ReceiptStatisticsAccumulator other) {
@@ -63,6 +95,18 @@ public class ReceiptStatisticsAccumulator {
         other.revenueByMonth.forEach((k, v) -> revenueByMonth.merge(k, v, Double::sum));
 
         uniqueCustomers.addAll(other.uniqueCustomers);
+
+        other.revenueByCustomer.forEach((k, v) -> revenueByCustomer.merge(k, v, Double::sum));
+        other.ordersByCustomer.forEach((k, v) -> ordersByCustomer.merge(k, v, Long::sum));
+        other.itemQuantityByName.forEach((k, v) -> itemQuantityByName.merge(k, v, Long::sum));
+        other.itemRevenueByName.forEach((k, v) -> itemRevenueByName.merge(k, v, Double::sum));
+        other.revenueByCity.forEach((k, v) -> revenueByCity.merge(k, v, Double::sum));
+        other.ordersByCity.forEach((k, v) -> ordersByCity.merge(k, v, Long::sum));
+        other.revenueByStatus.forEach((k, v) -> revenueByStatus.merge(k, v, Double::sum));
+        other.quantityByPriceTier.forEach((k, v) -> quantityByPriceTier.merge(k, v, Long::sum));
+        other.revenueByPriceTier.forEach((k, v) -> revenueByPriceTier.merge(k, v, Double::sum));
+        other.revenueByState.forEach((k, v) -> revenueByState.merge(k, v, Double::sum));
+        other.ordersByState.forEach((k, v) -> ordersByState.merge(k, v, Long::sum));
 
         return this;
     }
@@ -82,6 +126,14 @@ public class ReceiptStatisticsAccumulator {
 
         stats.setTotalLoyaltyPoints(totalLoyaltyPoints);
         stats.setRevenueByMonth(revenueByMonth);
+        stats.setTopCustomersBySpending(TopMetrics.calculateTopCustomers(revenueByCustomer));
+        stats.setTopCustomersByOrderCount(
+                TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
+        stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
+        stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
+        stats.setRevenueByStatusRanking(TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
+        stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));
+        stats.setTopStatesByRevenue(TopMetrics.calculateTopStates(revenueByState, ordersByState));
 
         return stats;
     }

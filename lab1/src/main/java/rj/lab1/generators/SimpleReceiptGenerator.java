@@ -1,13 +1,18 @@
 package rj.lab1.generators;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
-import rj.lab1.model.*;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
+
+import rj.lab1.model.Customer;
+import rj.lab1.model.Item;
+import rj.lab1.model.Receipt;
+import rj.lab1.model.ReceiptStatus;
+import rj.lab1.model.ShippingAddress;
 
 public class SimpleReceiptGenerator {
 
@@ -39,7 +44,7 @@ public class SimpleReceiptGenerator {
 
         // loyalty points считаем, например, как сумма цен/10
         int points = (int) receipt.getItems().stream()
-                .mapToDouble(Item::getTotalPrice)
+                .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
                 .sum() / 10;
         receipt.setLoyaltyPointsEarned(points);
 
@@ -68,8 +73,7 @@ public class SimpleReceiptGenerator {
                 RandomStringUtils.randomAlphabetic(5, 10),
                 RandomStringUtils.randomAlphabetic(2, 5),
                 RandomStringUtils.randomNumeric(5),
-                "Utopia"
-        );
+                "Utopia");
     }
 
     private List<Item> randomItems() {
@@ -80,7 +84,6 @@ public class SimpleReceiptGenerator {
             item.setName("Item-" + RandomStringUtils.randomAlphanumeric(4));
             item.setQuantity(RandomUtils.nextInt(1, 5));
             item.setUnitPrice(RandomUtils.nextDouble(minPrice, maxPrice));
-            item.setTotalPrice(item.getQuantity() * item.getUnitPrice());
             items.add(item);
         }
         return items;
@@ -98,4 +101,3 @@ public class SimpleReceiptGenerator {
         return values[RandomUtils.nextInt(0, values.length)];
     }
 }
-

@@ -28,6 +28,17 @@ public class ReceiptStatisticsIterateCircleAggregator {
         Map<ReceiptStatus, Long> ordersByStatus = new EnumMap<>(ReceiptStatus.class);
         Map<Integer, Double> revenueByMonth = new HashMap<>();
         Set<String> uniqueCustomers = new HashSet<>();
+        Map<String, Double> revenueByCustomer = new HashMap<>();
+        Map<String, Long> ordersByCustomer = new HashMap<>();
+        Map<String, Long> itemQuantityByName = new HashMap<>();
+        Map<String, Double> itemRevenueByName = new HashMap<>();
+        Map<String, Double> revenueByCity = new HashMap<>();
+        Map<String, Long> ordersByCity = new HashMap<>();
+        Map<ReceiptStatus, Double> revenueByStatus = new EnumMap<>(ReceiptStatus.class);
+        Map<PriceTier, Long> quantityByPriceTier = new EnumMap<>(PriceTier.class);
+        Map<PriceTier, Double> revenueByPriceTier = new EnumMap<>(PriceTier.class);
+        Map<String, Double> revenueByState = new HashMap<>();
+        Map<String, Long> ordersByState = new HashMap<>();
 
         for (Receipt r : receipts) {
             totalOrders++;
@@ -35,7 +46,14 @@ public class ReceiptStatisticsIterateCircleAggregator {
             double orderTotal = 0;
             for (Item item : r.getItems()) {
                 totalItemsSold += item.getQuantity();
-                orderTotal += item.getTotalPrice();
+                double itemRevenue = item.getUnitPrice() * item.getQuantity();
+                orderTotal += itemRevenue;
+                itemQuantityByName.merge(item.getName(), (long) item.getQuantity(), Long::sum);
+                itemRevenueByName.merge(item.getName(), itemRevenue, Double::sum);
+
+                PriceTier tier = PriceTier.fromUnitPrice(item.getUnitPrice());
+                quantityByPriceTier.merge(tier, (long) item.getQuantity(), Long::sum);
+                revenueByPriceTier.merge(tier, itemRevenue, Double::sum);
             }
 
             totalRevenue += orderTotal;
@@ -46,11 +64,23 @@ public class ReceiptStatisticsIterateCircleAggregator {
 
             String customerKey = r.getCustomer().getFirstName() + " " + r.getCustomer().getLastName();
             uniqueCustomers.add(customerKey);
+            revenueByCustomer.merge(customerKey, orderTotal, Double::sum);
+            ordersByCustomer.merge(customerKey, 1L, Long::sum);
 
             int month = r.getDate().getMonthValue();
             revenueByMonth.merge(month, orderTotal, Double::sum);
 
             totalLoyaltyPoints += r.getLoyaltyPointsEarned();
+
+            String city = r.getShippingAddress().city();
+            revenueByCity.merge(city, orderTotal, Double::sum);
+            ordersByCity.merge(city, 1L, Long::sum);
+
+            revenueByStatus.merge(r.getStatus(), orderTotal, Double::sum);
+
+            String state = r.getShippingAddress().state();
+            revenueByState.merge(state, orderTotal, Double::sum);
+            ordersByState.merge(state, 1L, Long::sum);
         }
 
         stats.setTotalOrders(totalOrders);
@@ -66,6 +96,14 @@ public class ReceiptStatisticsIterateCircleAggregator {
 
         stats.setTotalLoyaltyPoints(totalLoyaltyPoints);
         stats.setRevenueByMonth(revenueByMonth);
+        stats.setTopCustomersBySpending(TopMetrics.calculateTopCustomers(revenueByCustomer));
+        stats.setTopCustomersByOrderCount(
+                TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
+        stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
+        stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
+        stats.setRevenueByStatusRanking(TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
+        stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));
+        stats.setTopStatesByRevenue(TopMetrics.calculateTopStates(revenueByState, ordersByState));
 
         return stats;
     }

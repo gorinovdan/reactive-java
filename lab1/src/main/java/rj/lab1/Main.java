@@ -19,7 +19,7 @@ import rj.lab1.statistics.ReceiptStatisticsStreamCustomAggregator;
 public class Main {
 
     private static final int[] DATASET_SIZES = { 5_000, 50_000, 250_000 };
-    private static final double DOUBLE_TOLERANCE = 1e-5;
+    private static final double DOUBLE_TOLERANCE = 1e-6;
 
     public static void main(String[] args) {
         SimpleReceiptGenerator generator = new SimpleReceiptGenerator()
@@ -72,6 +72,16 @@ public class Main {
 
             checkOrdersByStatus(reference.getOrdersByStatus(), other.getOrdersByStatus());
             checkRevenueByMonth(reference.getRevenueByMonth(), other.getRevenueByMonth());
+            checkList("topCustomersBySpending", reference.getTopCustomersBySpending(),
+                    other.getTopCustomersBySpending());
+            checkList("topCustomersByOrderCount", reference.getTopCustomersByOrderCount(),
+                    other.getTopCustomersByOrderCount());
+            checkList("topItemsByQuantity", reference.getTopItemsByQuantity(), other.getTopItemsByQuantity());
+            checkList("topCitiesByRevenue", reference.getTopCitiesByRevenue(), other.getTopCitiesByRevenue());
+            checkList("revenueByStatusRanking", reference.getRevenueByStatusRanking(),
+                    other.getRevenueByStatusRanking());
+            checkList("salesByPriceTier", reference.getSalesByPriceTier(), other.getSalesByPriceTier());
+            checkList("topStatesByRevenue", reference.getTopStatesByRevenue(), other.getTopStatesByRevenue());
         }
     }
 
@@ -99,6 +109,12 @@ public class Main {
 
     private static void checkLong(String label, long expected, long actual) {
         if (expected != actual) {
+            throw new IllegalStateException(label + " mismatch: expected=" + expected + ", actual=" + actual);
+        }
+    }
+
+    private static <T> void checkList(String label, List<T> expected, List<T> actual) {
+        if (!Objects.equals(expected, actual)) {
             throw new IllegalStateException(label + " mismatch: expected=" + expected + ", actual=" + actual);
         }
     }
