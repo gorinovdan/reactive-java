@@ -1,11 +1,12 @@
 package rj.lab1.statistics;
 
-import java.util.DoubleSummaryStatistics;
 import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.Set;
+import java.util.stream.Collector;
 
 import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
@@ -14,178 +15,154 @@ import rj.lab1.model.ReceiptStatus;
 public class ReceiptStatisticsStreamAggregator {
 
         public static ReceiptStatistics aggregate(List<Receipt> receipts) {
-                ReceiptStatistics stats = new ReceiptStatistics();
-
-                // сумма по чекам
-                DoubleSummaryStatistics orderSummary = receipts.stream()
-                                .mapToDouble(ReceiptStatisticsStreamAggregator::orderTotal)
-                                .summaryStatistics();
-
-                double totalRevenue = orderSummary.getSum();
-                long totalOrders = orderSummary.getCount();
-                double minReceipt = totalOrders > 0 ? orderSummary.getMin() : 0;
-                double maxReceipt = totalOrders > 0 ? orderSummary.getMax() : 0;
-
-                // количество проданных товаров
-                long totalItemsSold = receipts.stream()
-                                .flatMap(r -> r.getItems().stream())
-                                .mapToLong(Item::getQuantity)
-                                .sum();
-
-                // сумма бонусных баллов
-                long totalLoyaltyPoints = receipts.stream()
-                                .mapToLong(Receipt::getLoyaltyPointsEarned)
-                                .sum();
-
-                // заказы по статусам
-                Map<ReceiptStatus, Long> ordersByStatus = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                Receipt::getStatus,
-                                                () -> new EnumMap<>(ReceiptStatus.class),
-                                                Collectors.counting()));
-
-                // выручка по месяцам
-                Map<Integer, Double> revenueByMonth = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                r -> r.getDate().getMonthValue(),
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::orderTotal)));
-
-                // уникальные клиенты
-                long uniqueCustomers = receipts.stream()
-                                .map(ReceiptStatisticsStreamAggregator::customerName)
-                                .collect(Collectors.toSet())
-                                .size();
-
-                Map<String, Double> revenueByCustomer = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                ReceiptStatisticsStreamAggregator::customerName,
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::orderTotal)));
-
-                Map<String, Long> ordersByCustomer = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                ReceiptStatisticsStreamAggregator::customerName,
-                                                Collectors.counting()));
-
-                Map<String, Long> itemQuantityByName = receipts.stream()
-                                .flatMap(r -> r.getItems().stream())
-                                .collect(Collectors.groupingBy(
-                                                Item::getName,
-                                                Collectors.summingLong(Item::getQuantity)));
-
-                Map<String, Double> itemRevenueByName = receipts.stream()
-                                .flatMap(r -> r.getItems().stream())
-                                .collect(Collectors.groupingBy(
-                                                Item::getName,
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::itemRevenue)));
-
-                Map<String, Long> itemReceiptCountByName = receipts.stream()
-                                .flatMap(r -> r.getItems().stream()
-                                                .map(Item::getName)
-                                                .distinct())
-                                .collect(Collectors.groupingBy(
-                                                Function.identity(),
-                                                Collectors.counting()));
-
-                Map<String, Double> itemReceiptTotalByName = receipts.stream()
-                                .flatMap(r -> {
-                                        double total = orderTotal(r);
-                                        return r.getItems().stream()
-                                                        .map(Item::getName)
-                                                        .distinct()
-                                                        .map(itemName -> Map.entry(itemName, total));
-                                })
-                                .collect(Collectors.groupingBy(
-                                                Map.Entry::getKey,
-                                                Collectors.summingDouble(Map.Entry::getValue)));
-
-                Map<String, Double> revenueByCity = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                r -> r.getShippingAddress().city(),
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::orderTotal)));
-
-                Map<String, Long> ordersByCity = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                r -> r.getShippingAddress().city(),
-                                                Collectors.counting()));
-
-                Map<ReceiptStatus, Double> revenueByStatus = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                Receipt::getStatus,
-                                                () -> new EnumMap<>(ReceiptStatus.class),
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::orderTotal)));
-
-                Map<PriceTier, Long> quantityByPriceTier = receipts.stream()
-                                .flatMap(r -> r.getItems().stream())
-                                .collect(Collectors.groupingBy(
-                                                item -> PriceTier.fromUnitPrice(item.getUnitPrice()),
-                                                () -> new EnumMap<>(PriceTier.class),
-                                                Collectors.summingLong(Item::getQuantity)));
-
-                Map<PriceTier, Double> revenueByPriceTier = receipts.stream()
-                                .flatMap(r -> r.getItems().stream())
-                                .collect(Collectors.groupingBy(
-                                                item -> PriceTier.fromUnitPrice(item.getUnitPrice()),
-                                                () -> new EnumMap<>(PriceTier.class),
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::itemRevenue)));
-
-                Map<String, Double> revenueByState = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                r -> r.getShippingAddress().state(),
-                                                Collectors.summingDouble(
-                                                                ReceiptStatisticsStreamAggregator::orderTotal)));
-
-                Map<String, Long> ordersByState = receipts.stream()
-                                .collect(Collectors.groupingBy(
-                                                r -> r.getShippingAddress().state(),
-                                                Collectors.counting()));
-
-                // заполнение статистики
-                stats.setTotalOrders(totalOrders);
-                stats.setTotalRevenue(totalRevenue);
-                stats.setAverageReceiptAmount(totalOrders > 0 ? totalRevenue / totalOrders : 0);
-                stats.setMinReceiptAmount(minReceipt);
-                stats.setMaxReceiptAmount(maxReceipt);
-
-                stats.setOrdersByStatus(ordersByStatus);
-                stats.setTotalItemsSold(totalItemsSold);
-
-                stats.setUniqueCustomers(uniqueCustomers);
-
-                stats.setTotalLoyaltyPoints(totalLoyaltyPoints);
-                stats.setRevenueByMonth(revenueByMonth);
-                stats.setTopCustomersBySpending(TopMetrics.calculateTopCustomers(revenueByCustomer));
-                stats.setTopCustomersByOrderCount(
-                                TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
-                stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
-                stats.setItemAverageReceipts(
-                                TopMetrics.calculateItemAverageReceipts(
-                                                itemReceiptCountByName,
-                                                itemReceiptTotalByName));
-                stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
-                stats.setRevenueByStatusRanking(TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
-                stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));
-                stats.setTopStatesByRevenue(TopMetrics.calculateTopStates(revenueByState, ordersByState));
-
-                return stats;
+                return receipts.stream()
+                                .collect(Collector.of(
+                                                StreamAccumulator::new,
+                                                StreamAccumulator::add,
+                                                StreamAccumulator::combine,
+                                                StreamAccumulator::toStatistics));
         }
 
-        private static String customerName(Receipt receipt) {
-                return receipt.getCustomer().getFirstName() + " " + receipt.getCustomer().getLastName();
-        }
+        private static final class StreamAccumulator {
+                private long totalOrders = 0;
+                private double totalRevenue = 0;
+                private double minReceipt = Double.POSITIVE_INFINITY;
+                private double maxReceipt = Double.NEGATIVE_INFINITY;
 
-        private static double orderTotal(Receipt receipt) {
-                return receipt.getItems().stream()
-                                .mapToDouble(ReceiptStatisticsStreamAggregator::itemRevenue)
-                                .sum();
-        }
+                private long totalItemsSold = 0;
+                private long totalLoyaltyPoints = 0;
 
-        private static double itemRevenue(Item item) {
-                return item.getUnitPrice() * item.getQuantity();
+                private final Map<ReceiptStatus, Long> ordersByStatus = new EnumMap<>(ReceiptStatus.class);
+                private final Map<Integer, Double> revenueByMonth = new HashMap<>();
+                private final Set<String> uniqueCustomers = new HashSet<>();
+                private final Map<String, Double> revenueByCustomer = new HashMap<>();
+                private final Map<String, Long> ordersByCustomer = new HashMap<>();
+                private final Map<String, Long> itemQuantityByName = new HashMap<>();
+                private final Map<String, Double> itemRevenueByName = new HashMap<>();
+                private final Map<String, Long> itemReceiptCountByName = new HashMap<>();
+                private final Map<String, Double> itemReceiptTotalByName = new HashMap<>();
+                private final Map<String, Double> revenueByCity = new HashMap<>();
+                private final Map<String, Long> ordersByCity = new HashMap<>();
+                private final Map<ReceiptStatus, Double> revenueByStatus = new EnumMap<>(ReceiptStatus.class);
+                private final Map<PriceTier, Long> quantityByPriceTier = new EnumMap<>(PriceTier.class);
+                private final Map<PriceTier, Double> revenueByPriceTier = new EnumMap<>(PriceTier.class);
+                private final Map<String, Double> revenueByState = new HashMap<>();
+                private final Map<String, Long> ordersByState = new HashMap<>();
+
+                void add(Receipt receipt) {
+                        totalOrders++;
+
+                        double orderTotal = 0;
+                        long itemsInOrder = 0;
+                        Set<String> itemsInReceipt = new HashSet<>();
+
+                        for (Item item : receipt.getItems()) {
+                                double itemRevenue = item.getUnitPrice() * item.getQuantity();
+                                orderTotal += itemRevenue;
+                                itemsInOrder += item.getQuantity();
+
+                                itemQuantityByName.merge(item.getName(), (long) item.getQuantity(), Long::sum);
+                                itemRevenueByName.merge(item.getName(), itemRevenue, Double::sum);
+                                itemsInReceipt.add(item.getName());
+
+                                PriceTier tier = PriceTier.fromUnitPrice(item.getUnitPrice());
+                                quantityByPriceTier.merge(tier, (long) item.getQuantity(), Long::sum);
+                                revenueByPriceTier.merge(tier, itemRevenue, Double::sum);
+                        }
+
+                        for (String itemName : itemsInReceipt) {
+                                itemReceiptCountByName.merge(itemName, 1L, Long::sum);
+                                itemReceiptTotalByName.merge(itemName, orderTotal, Double::sum);
+                        }
+
+                        totalRevenue += orderTotal;
+                        minReceipt = Math.min(minReceipt, orderTotal);
+                        maxReceipt = Math.max(maxReceipt, orderTotal);
+
+                        totalItemsSold += itemsInOrder;
+
+                        totalLoyaltyPoints += receipt.getLoyaltyPointsEarned();
+
+                        ordersByStatus.merge(receipt.getStatus(), 1L, Long::sum);
+                        revenueByStatus.merge(receipt.getStatus(), orderTotal, Double::sum);
+
+                        revenueByMonth.merge(receipt.getDate().getMonthValue(), orderTotal, Double::sum);
+
+                        String customerKey = receipt.getCustomer().getFirstName() + " " + receipt.getCustomer().getLastName();
+                        uniqueCustomers.add(customerKey);
+                        revenueByCustomer.merge(customerKey, orderTotal, Double::sum);
+                        ordersByCustomer.merge(customerKey, 1L, Long::sum);
+
+                        String city = receipt.getShippingAddress().city();
+                        revenueByCity.merge(city, orderTotal, Double::sum);
+                        ordersByCity.merge(city, 1L, Long::sum);
+
+                        String state = receipt.getShippingAddress().state();
+                        revenueByState.merge(state, orderTotal, Double::sum);
+                        ordersByState.merge(state, 1L, Long::sum);
+                }
+
+                StreamAccumulator combine(StreamAccumulator other) {
+                        totalOrders += other.totalOrders;
+                        totalRevenue += other.totalRevenue;
+                        minReceipt = Math.min(minReceipt, other.minReceipt);
+                        maxReceipt = Math.max(maxReceipt, other.maxReceipt);
+
+                        totalItemsSold += other.totalItemsSold;
+                        totalLoyaltyPoints += other.totalLoyaltyPoints;
+
+                        other.ordersByStatus.forEach((k, v) -> ordersByStatus.merge(k, v, Long::sum));
+                        other.revenueByMonth.forEach((k, v) -> revenueByMonth.merge(k, v, Double::sum));
+
+                        uniqueCustomers.addAll(other.uniqueCustomers);
+
+                        other.revenueByCustomer.forEach((k, v) -> revenueByCustomer.merge(k, v, Double::sum));
+                        other.ordersByCustomer.forEach((k, v) -> ordersByCustomer.merge(k, v, Long::sum));
+                        other.itemQuantityByName.forEach((k, v) -> itemQuantityByName.merge(k, v, Long::sum));
+                        other.itemRevenueByName.forEach((k, v) -> itemRevenueByName.merge(k, v, Double::sum));
+                        other.itemReceiptCountByName.forEach((k, v) -> itemReceiptCountByName.merge(k, v, Long::sum));
+                        other.itemReceiptTotalByName.forEach((k, v) -> itemReceiptTotalByName.merge(k, v, Double::sum));
+                        other.revenueByCity.forEach((k, v) -> revenueByCity.merge(k, v, Double::sum));
+                        other.ordersByCity.forEach((k, v) -> ordersByCity.merge(k, v, Long::sum));
+                        other.revenueByStatus.forEach((k, v) -> revenueByStatus.merge(k, v, Double::sum));
+                        other.quantityByPriceTier.forEach((k, v) -> quantityByPriceTier.merge(k, v, Long::sum));
+                        other.revenueByPriceTier.forEach((k, v) -> revenueByPriceTier.merge(k, v, Double::sum));
+                        other.revenueByState.forEach((k, v) -> revenueByState.merge(k, v, Double::sum));
+                        other.ordersByState.forEach((k, v) -> ordersByState.merge(k, v, Long::sum));
+
+                        return this;
+                }
+
+                ReceiptStatistics toStatistics() {
+                        ReceiptStatistics stats = new ReceiptStatistics();
+                        stats.setTotalOrders(totalOrders);
+                        stats.setTotalRevenue(totalRevenue);
+                        stats.setAverageReceiptAmount(totalOrders > 0 ? totalRevenue / totalOrders : 0);
+                        stats.setMinReceiptAmount(totalOrders > 0 ? minReceipt : 0);
+                        stats.setMaxReceiptAmount(totalOrders > 0 ? maxReceipt : 0);
+
+                        stats.setOrdersByStatus(ordersByStatus);
+                        stats.setTotalItemsSold(totalItemsSold);
+
+                        stats.setUniqueCustomers(uniqueCustomers.size());
+
+                        stats.setTotalLoyaltyPoints(totalLoyaltyPoints);
+                        stats.setRevenueByMonth(revenueByMonth);
+                        stats.setTopCustomersBySpending(TopMetrics.calculateTopCustomers(revenueByCustomer));
+                        stats.setTopCustomersByOrderCount(
+                                        TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
+                        stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
+                        stats.setItemAverageReceipts(
+                                        TopMetrics.calculateItemAverageReceipts(
+                                                        itemReceiptCountByName,
+                                                        itemReceiptTotalByName));
+                        stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
+                        stats.setRevenueByStatusRanking(
+                                        TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
+                        stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));
+                        stats.setTopStatesByRevenue(TopMetrics.calculateTopStates(revenueByState, ordersByState));
+
+                        return stats;
+                }
         }
 }

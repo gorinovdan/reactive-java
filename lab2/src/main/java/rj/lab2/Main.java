@@ -1,12 +1,16 @@
 package rj.lab1;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
 import rj.lab1.generators.SimpleReceiptGenerator;
 import rj.lab1.model.Receipt;
+import rj.lab1.report.ReportGenerator;
+import rj.lab1.report.ReportGenerator.DatasetReportRow;
 import rj.lab1.statistics.ReceiptStatistics;
 import rj.lab1.statistics.ReceiptStatisticsIterateCircleAggregator;
 import rj.lab1.statistics.ReceiptStatisticsStreamAggregator;
@@ -21,6 +25,8 @@ public class Main {
                 .withItemRange(2, 7)
                 .withPriceRange(5.0, 200.0);
 
+        List<DatasetReportRow> reportRows = new ArrayList<>();
+
         // 1) Сначала готовим первый набор и печатаем Sample statistics
         int firstSize = DATASET_SIZES[0];
         List<Receipt> firstReceipts = generator.generateMany(firstSize);
@@ -31,6 +37,8 @@ public class Main {
                 () -> ReceiptStatisticsStreamAggregator.aggregate(firstReceipts));
         Measurement<ReceiptStatistics> firstCustom = measure(
                 () -> ReceiptStatisticsStreamCustomAggregator.aggregate(firstReceipts));
+
+        reportRows.add(toRow(firstSize, firstIter, firstStream, firstCustom));
 
         printSampleStats("Sample statistics (stream, simple dataset)", firstStream.result(), 10);
         System.out.println();
@@ -57,6 +65,8 @@ public class Main {
             Measurement<ReceiptStatistics> customCollector = measure(
                     () -> ReceiptStatisticsStreamCustomAggregator.aggregate(receipts));
 
+            reportRows.add(toRow(size, iterative, stream, customCollector));
+
             printBenchRow(size, iterative.duration(), stream.duration(), customCollector.duration());
 
             complexSize = size;
@@ -71,6 +81,10 @@ public class Main {
         printComplexityComparison(firstSize, complexSize,
                 firstIter, firstStream, firstCustom,
                 complexIter, complexStream, complexCustom);
+
+        Path reportPath = ReportGenerator.writeReport(reportRows);
+        System.out.println();
+        System.out.printf("Detailed report saved to %s%n", reportPath.toAbsolutePath());
     }
 
     // ---- Formatting helpers ----
@@ -164,6 +178,22 @@ public class Main {
         T result = supplier.get();
         Instant end = Instant.now();
         return new Measurement<>(result, Duration.between(start, end));
+    }
+
+    private static DatasetReportRow toRow(
+            int datasetSize,
+            Measurement<ReceiptStatistics> iterative,
+            Measurement<ReceiptStatistics> parallel,
+            Measurement<ReceiptStatistics> custom) {
+
+        return new DatasetReportRow(
+                datasetSize,
+                iterative.duration(),
+                iterative.result(),
+                parallel.duration(),
+                parallel.result(),
+                custom.duration(),
+                custom.result());
     }
 
     private record Measurement<T>(T result, Duration duration) {
