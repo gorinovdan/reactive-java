@@ -13,6 +13,7 @@ import rj.lab1.model.ReceiptStatus;
 public class ReceiptStatistics {
     private double totalRevenue;
     private double averageReceiptAmount;
+    private TotalAverage totalAverage = TotalAverage.empty();
     private double minReceiptAmount;
     private double maxReceiptAmount;
 
@@ -37,6 +38,7 @@ public class ReceiptStatistics {
         StringJoiner joiner = new StringJoiner("\n  ", "ReceiptStatistics{\n  ", "\n}");
         joiner.add("totalRevenue=" + totalRevenue);
         joiner.add("averageReceiptAmount=" + averageReceiptAmount);
+        joiner.add("totalAverage=" + totalAverage);
         joiner.add("minReceiptAmount=" + minReceiptAmount);
         joiner.add("maxReceiptAmount=" + maxReceiptAmount);
         joiner.add("totalOrders=" + totalOrders);

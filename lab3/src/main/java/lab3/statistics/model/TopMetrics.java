@@ -1,12 +1,12 @@
-package rj.lab1.statistics;
+package lab3.statistics.model;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import rj.lab1.model.Receipt;
-import rj.lab1.model.ReceiptStatus;
+import lab3.model.Receipt;
+import lab3.model.ReceiptStatus;
 
 /**
  * Utility class that turns aggregated maps into sorted top metrics lists.
@@ -51,6 +51,12 @@ public final class TopMetrics {
 
     public static List<ItemAverageReceipt> calculateItemAverageReceipts(List<Receipt> receipts) {
         return ItemAverageReceiptMetrics.calculate(receipts);
+    }
+
+    public static List<ItemAverageReceipt> calculateItemAverageReceipts(
+            List<Receipt> receipts,
+            long itemNameDelayMillis) {
+        return ItemAverageReceiptMetrics.calculate(receipts, itemNameDelayMillis);
     }
 
     public static List<CityRevenue> calculateTopCities(Map<String, Double> revenueByCity,

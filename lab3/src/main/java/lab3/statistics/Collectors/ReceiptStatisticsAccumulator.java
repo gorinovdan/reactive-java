@@ -1,19 +1,19 @@
-package rj.lab1.statistics.Collectors;
+package lab3.statistics.Collectors;
 
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import rj.lab1.model.Item;
-import rj.lab1.model.Receipt;
-import rj.lab1.model.ReceiptStatus;
-import rj.lab1.statistics.ItemAverageReceiptMetrics;
-import rj.lab1.statistics.PriceTier;
-import rj.lab1.statistics.ReceiptStatistics;
-import rj.lab1.statistics.TopMetrics;
-import rj.lab1.statistics.TotalAverage;
-import rj.lab1.statistics.TotalAverageMetrics;
+import lab3.model.Item;
+import lab3.model.Receipt;
+import lab3.model.ReceiptStatus;
+import lab3.statistics.model.ItemAverageReceiptMetrics;
+import lab3.statistics.model.PriceTier;
+import lab3.statistics.model.ReceiptStatistics;
+import lab3.statistics.model.TotalAverage;
+import lab3.statistics.model.TotalAverageMetrics;
+import lab3.statistics.model.TopMetrics;
 
 public class ReceiptStatisticsAccumulator {
     private final long itemNameDelayMillis;
@@ -139,9 +139,7 @@ public class ReceiptStatisticsAccumulator {
         ReceiptStatistics stats = new ReceiptStatistics();
         stats.setTotalOrders(totalOrders);
         stats.setTotalRevenue(totalRevenue);
-        TotalAverage totalAverage = totalAverageAccumulator.finish();
-        stats.setTotalAverage(totalAverage);
-        stats.setAverageReceiptAmount(totalAverage.averageReceiptAmount());
+        stats.setAverageReceiptAmount(totalOrders > 0 ? totalRevenue / totalOrders : 0);
         stats.setMinReceiptAmount(totalOrders > 0 ? minReceipt : 0);
         stats.setMaxReceiptAmount(totalOrders > 0 ? maxReceipt : 0);
 

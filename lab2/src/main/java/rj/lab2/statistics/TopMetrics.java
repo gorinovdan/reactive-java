@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import rj.lab1.model.Receipt;
 import rj.lab1.model.ReceiptStatus;
 
 /**
@@ -48,20 +49,14 @@ public final class TopMetrics {
                 .toList();
     }
 
+    public static List<ItemAverageReceipt> calculateItemAverageReceipts(List<Receipt> receipts) {
+        return ItemAverageReceiptMetrics.calculate(receipts);
+    }
+
     public static List<ItemAverageReceipt> calculateItemAverageReceipts(
-            Map<String, Long> receiptCountByItem,
-            Map<String, Double> orderTotalsByItem) {
-        return receiptCountByItem.entrySet().stream()
-                .filter(entry -> entry.getValue() > 2)
-                .map(entry -> {
-                    String itemName = entry.getKey();
-                    long receiptCount = entry.getValue();
-                    double totalOrderAmount = orderTotalsByItem.getOrDefault(itemName, 0.0);
-                    double averageReceipt = receiptCount > 0 ? totalOrderAmount / receiptCount : 0.0;
-                    return new ItemAverageReceipt(itemName, receiptCount, averageReceipt);
-                })
-                .sorted(ItemAverageReceipt.byAverageReceiptDescending())
-                .toList();
+            List<Receipt> receipts,
+            long itemNameDelayMillis) {
+        return ItemAverageReceiptMetrics.calculate(receipts, itemNameDelayMillis);
     }
 
     public static List<CityRevenue> calculateTopCities(Map<String, Double> revenueByCity,

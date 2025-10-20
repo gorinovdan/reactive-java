@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package lab3.statistics.aggregators;
 
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -7,9 +7,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import rj.lab1.model.Item;
-import rj.lab1.model.Receipt;
-import rj.lab1.model.ReceiptStatus;
+import lab3.model.Item;
+import lab3.model.Receipt;
+import lab3.model.ReceiptStatus;
+import lab3.statistics.model.ItemAverageReceiptMetrics;
+import lab3.statistics.model.PriceTier;
+import lab3.statistics.model.ReceiptStatistics;
+import lab3.statistics.model.TotalAverage;
+import lab3.statistics.model.TotalAverageMetrics;
+import lab3.statistics.model.TopMetrics;
 
 public class ReceiptStatisticsIterateCircleAggregator {
 
@@ -95,9 +101,7 @@ public class ReceiptStatisticsIterateCircleAggregator {
 
         stats.setTotalOrders(totalOrders);
         stats.setTotalRevenue(totalRevenue);
-        TotalAverage totalAverage = totalAverageAccumulator.finish();
-        stats.setTotalAverage(totalAverage);
-        stats.setAverageReceiptAmount(totalAverage.averageReceiptAmount());
+        stats.setAverageReceiptAmount(totalOrders > 0 ? totalRevenue / totalOrders : 0);
         stats.setMinReceiptAmount(totalOrders > 0 ? minReceipt : 0);
         stats.setMaxReceiptAmount(totalOrders > 0 ? maxReceipt : 0);
 

@@ -1,28 +1,24 @@
-package rj.lab1;
+package lab3;
 
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Supplier;
 
-import rj.lab1.generators.SimpleReceiptGenerator;
-import rj.lab1.model.Receipt;
-import rj.lab1.report.ReportGenerator;
-import rj.lab1.report.ReportGenerator.DatasetReportRow;
-import rj.lab1.statistics.ItemAverageReceipt;
-import rj.lab1.statistics.ReceiptStatistics;
-import rj.lab1.statistics.ReceiptStatisticsIterateCircleAggregator;
-import rj.lab1.statistics.ReceiptStatisticsStreamAggregator;
-import rj.lab1.statistics.ReceiptStatisticsStreamCustomAggregator;
-import rj.lab1.statistics.TotalAverage;
+import lab3.generators.SimpleReceiptGenerator;
+import lab3.model.Receipt;
+import lab3.lab1.report.ReportGenerator;
+import lab3.lab1.report.ReportGenerator.DatasetReportRow;
+import lab3.statistics.model.ReceiptStatistics;
+import lab3.statistics.aggregators.ReceiptStatisticsIterateCircleAggregator;
+import lab3.statistics.aggregators.ReceiptStatisticsStreamAggregator;
+import lab3.statistics.aggregators.ReceiptStatisticsStreamCustomAggregator;
 
 public class Main {
 
     private static final int[] DATASET_SIZES = { 5_000, 50_000, 250_000 };
-    private static final double EPS = 1e-9;
 
     public static void main(String[] args) {
         SimpleReceiptGenerator generator = new SimpleReceiptGenerator()
@@ -33,7 +29,12 @@ public class Main {
 
         // 1) Сначала готовим первый набор и печатаем Sample statistics
         int firstSize = DATASET_SIZES[0];
-        List<Receipt> firstReceipts = generator.generateMany(firstSize);
+        List<Receipt> firstReceipts = null;
+        try {
+            firstReceipts = generator.generateMany(firstSize);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         Measurement<ReceiptStatistics> firstIter = measure(
                 () -> ReceiptStatisticsIterateCircleAggregator.aggregate(firstReceipts));
@@ -41,11 +42,6 @@ public class Main {
                 () -> ReceiptStatisticsStreamAggregator.aggregate(firstReceipts));
         Measurement<ReceiptStatistics> firstCustom = measure(
                 () -> ReceiptStatisticsStreamCustomAggregator.aggregate(firstReceipts));
-
-        compareMetrics("Dataset " + fmtSize(firstSize),
-                firstIter.result(),
-                firstStream.result(),
-                firstCustom.result());
 
         reportRows.add(toRow(firstSize, firstIter, firstStream, firstCustom));
 
@@ -73,11 +69,6 @@ public class Main {
                     () -> ReceiptStatisticsStreamAggregator.aggregate(receipts));
             Measurement<ReceiptStatistics> customCollector = measure(
                     () -> ReceiptStatisticsStreamCustomAggregator.aggregate(receipts));
-
-            compareMetrics("Dataset " + fmtSize(size),
-                    iterative.result(),
-                    stream.result(),
-                    customCollector.result());
 
             reportRows.add(toRow(size, iterative, stream, customCollector));
 
@@ -208,110 +199,6 @@ public class Main {
                 parallel.result(),
                 custom.duration(),
                 custom.result());
-    }
-
-    private static void compareMetrics(String label,
-            ReceiptStatistics iterative,
-            ReceiptStatistics stream,
-            ReceiptStatistics custom) {
-        if (iterative == null || stream == null || custom == null) {
-            System.out.println("Metric consistency (" + label + "): skipped due to missing data");
-            return;
-        }
-
-        System.out.println("Metric consistency (" + label + ")");
-        printItemAverageEquality("Iterative vs Stream",
-                iterative.getItemAverageReceipts(),
-                stream.getItemAverageReceipts());
-        printItemAverageEquality("Iterative vs Custom",
-                iterative.getItemAverageReceipts(),
-                custom.getItemAverageReceipts());
-        printItemAverageEquality("Stream vs Custom",
-                stream.getItemAverageReceipts(),
-                custom.getItemAverageReceipts());
-
-        printTotalAverageComparison("Iterative vs Stream",
-                iterative.getTotalAverage(),
-                stream.getTotalAverage());
-        printTotalAverageComparison("Iterative vs Custom",
-                iterative.getTotalAverage(),
-                custom.getTotalAverage());
-        printTotalAverageComparison("Stream vs Custom",
-                stream.getTotalAverage(),
-                custom.getTotalAverage());
-
-        printCrossComparison("Iterative", iterative);
-        printCrossComparison("Stream", stream);
-        printCrossComparison("Custom", custom);
-        System.out.println();
-    }
-
-    private static void printItemAverageEquality(String label,
-            List<ItemAverageReceipt> left,
-            List<ItemAverageReceipt> right) {
-        boolean equal = Objects.equals(left, right);
-        System.out.printf("  ItemAverageReceipt %s: %s%n", label, equal ? "OK" : "DIFF");
-        if (!equal) {
-            System.out.printf("    left.size=%d, right.size=%d%n",
-                    sizeOf(left), sizeOf(right));
-        }
-    }
-
-    private static void printTotalAverageComparison(String label,
-            TotalAverage left,
-            TotalAverage right) {
-        boolean equal = equalsTotalAverage(left, right);
-        System.out.printf("  TotalAverage %s: %s%n", label, equal ? "OK" : "DIFF");
-        if (!equal) {
-            System.out.printf("    left=%s%n", totalAverageSummary(left));
-            System.out.printf("    right=%s%n", totalAverageSummary(right));
-        }
-    }
-
-    private static void printCrossComparison(String label, ReceiptStatistics stats) {
-        TotalAverage totalAverage = stats.getTotalAverage();
-        double overall = totalAverage != null ? totalAverage.averageReceiptAmount() : Double.NaN;
-        List<ItemAverageReceipt> items = stats.getItemAverageReceipts();
-        double avgItem = (items == null || items.isEmpty())
-                ? Double.NaN
-                : items.stream().mapToDouble(ItemAverageReceipt::averageReceiptAmount).average().orElse(Double.NaN);
-        double maxItem = (items == null || items.isEmpty())
-                ? Double.NaN
-                : items.stream().mapToDouble(ItemAverageReceipt::averageReceiptAmount).max().orElse(Double.NaN);
-        System.out.printf("    %s vs TotalAverage: overall=%s, avg(item)=%s, max(item)=%s%n",
-                label, fmtDouble(overall), fmtDouble(avgItem), fmtDouble(maxItem));
-    }
-
-    private static boolean equalsTotalAverage(TotalAverage left, TotalAverage right) {
-        if (left == null || right == null) {
-            return left == null && right == null;
-        }
-        return left.receiptCount() == right.receiptCount()
-                && almostEqual(left.totalRevenue(), right.totalRevenue())
-                && almostEqual(left.averageReceiptAmount(), right.averageReceiptAmount());
-    }
-
-    private static boolean almostEqual(double a, double b) {
-        double scale = Math.max(1.0, Math.max(Math.abs(a), Math.abs(b)));
-        return Math.abs(a - b) <= EPS * scale;
-    }
-
-    private static int sizeOf(List<?> items) {
-        return items == null ? 0 : items.size();
-    }
-
-    private static String totalAverageSummary(TotalAverage totalAverage) {
-        if (totalAverage == null) {
-            return "null";
-        }
-        return String.format("[count=%d, revenue=%.2f, avg=%.2f]",
-                totalAverage.receiptCount(),
-                totalAverage.totalRevenue(),
-                totalAverage.averageReceiptAmount());
-    }
-
-    private static String fmtDouble(double value) {
-        return Double.isNaN(value) ? "n/a" : String.format("%.2f", value);
     }
 
     private record Measurement<T>(T result, Duration duration) {

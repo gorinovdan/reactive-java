@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collector;
+import java.util.Set;
 
 import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
@@ -39,8 +39,6 @@ public class ReceiptStatisticsStreamAggregator {
                 private final Map<String, Long> ordersByCustomer = new HashMap<>();
                 private final Map<String, Long> itemQuantityByName = new HashMap<>();
                 private final Map<String, Double> itemRevenueByName = new HashMap<>();
-                private final Map<String, Long> itemReceiptCountByName = new HashMap<>();
-                private final Map<String, Double> itemReceiptTotalByName = new HashMap<>();
                 private final Map<String, Double> revenueByCity = new HashMap<>();
                 private final Map<String, Long> ordersByCity = new HashMap<>();
                 private final Map<ReceiptStatus, Double> revenueByStatus = new EnumMap<>(ReceiptStatus.class);
@@ -48,6 +46,10 @@ public class ReceiptStatisticsStreamAggregator {
                 private final Map<PriceTier, Double> revenueByPriceTier = new EnumMap<>(PriceTier.class);
                 private final Map<String, Double> revenueByState = new HashMap<>();
                 private final Map<String, Long> ordersByState = new HashMap<>();
+                private final ItemAverageReceiptMetrics.ItemAverageAccumulator itemAverageAccumulator =
+                                ItemAverageReceiptMetrics.newAccumulator();
+                private final TotalAverageMetrics.TotalAverageAccumulator totalAverageAccumulator =
+                                TotalAverageMetrics.newAccumulator();
 
                 void add(Receipt receipt) {
                         totalOrders++;
@@ -61,19 +63,18 @@ public class ReceiptStatisticsStreamAggregator {
                                 orderTotal += itemRevenue;
                                 itemsInOrder += item.getQuantity();
 
-                                itemQuantityByName.merge(item.getName(), (long) item.getQuantity(), Long::sum);
-                                itemRevenueByName.merge(item.getName(), itemRevenue, Double::sum);
-                                itemsInReceipt.add(item.getName());
+                                String itemName = item.getName();
+                                itemQuantityByName.merge(itemName, (long) item.getQuantity(), Long::sum);
+                                itemRevenueByName.merge(itemName, itemRevenue, Double::sum);
+                                itemsInReceipt.add(itemName);
 
                                 PriceTier tier = PriceTier.fromUnitPrice(item.getUnitPrice());
                                 quantityByPriceTier.merge(tier, (long) item.getQuantity(), Long::sum);
                                 revenueByPriceTier.merge(tier, itemRevenue, Double::sum);
                         }
 
-                        for (String itemName : itemsInReceipt) {
-                                itemReceiptCountByName.merge(itemName, 1L, Long::sum);
-                                itemReceiptTotalByName.merge(itemName, orderTotal, Double::sum);
-                        }
+                        itemAverageAccumulator.addResolved(orderTotal, itemsInReceipt);
+                        totalAverageAccumulator.addResolved(orderTotal);
 
                         totalRevenue += orderTotal;
                         minReceipt = Math.min(minReceipt, orderTotal);
@@ -120,8 +121,6 @@ public class ReceiptStatisticsStreamAggregator {
                         other.ordersByCustomer.forEach((k, v) -> ordersByCustomer.merge(k, v, Long::sum));
                         other.itemQuantityByName.forEach((k, v) -> itemQuantityByName.merge(k, v, Long::sum));
                         other.itemRevenueByName.forEach((k, v) -> itemRevenueByName.merge(k, v, Double::sum));
-                        other.itemReceiptCountByName.forEach((k, v) -> itemReceiptCountByName.merge(k, v, Long::sum));
-                        other.itemReceiptTotalByName.forEach((k, v) -> itemReceiptTotalByName.merge(k, v, Double::sum));
                         other.revenueByCity.forEach((k, v) -> revenueByCity.merge(k, v, Double::sum));
                         other.ordersByCity.forEach((k, v) -> ordersByCity.merge(k, v, Long::sum));
                         other.revenueByStatus.forEach((k, v) -> revenueByStatus.merge(k, v, Double::sum));
@@ -129,6 +128,8 @@ public class ReceiptStatisticsStreamAggregator {
                         other.revenueByPriceTier.forEach((k, v) -> revenueByPriceTier.merge(k, v, Double::sum));
                         other.revenueByState.forEach((k, v) -> revenueByState.merge(k, v, Double::sum));
                         other.ordersByState.forEach((k, v) -> ordersByState.merge(k, v, Long::sum));
+                        itemAverageAccumulator.combine(other.itemAverageAccumulator);
+                        totalAverageAccumulator.combine(other.totalAverageAccumulator);
 
                         return this;
                 }
@@ -137,7 +138,9 @@ public class ReceiptStatisticsStreamAggregator {
                         ReceiptStatistics stats = new ReceiptStatistics();
                         stats.setTotalOrders(totalOrders);
                         stats.setTotalRevenue(totalRevenue);
-                        stats.setAverageReceiptAmount(totalOrders > 0 ? totalRevenue / totalOrders : 0);
+                        TotalAverage totalAverage = totalAverageAccumulator.finish();
+                        stats.setTotalAverage(totalAverage);
+                        stats.setAverageReceiptAmount(totalAverage.averageReceiptAmount());
                         stats.setMinReceiptAmount(totalOrders > 0 ? minReceipt : 0);
                         stats.setMaxReceiptAmount(totalOrders > 0 ? maxReceipt : 0);
 
@@ -152,10 +155,7 @@ public class ReceiptStatisticsStreamAggregator {
                         stats.setTopCustomersByOrderCount(
                                         TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
                         stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
-                        stats.setItemAverageReceipts(
-                                        TopMetrics.calculateItemAverageReceipts(
-                                                        itemReceiptCountByName,
-                                                        itemReceiptTotalByName));
+                        stats.setItemAverageReceipts(itemAverageAccumulator.finish());
                         stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
                         stats.setRevenueByStatusRanking(
                                         TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));

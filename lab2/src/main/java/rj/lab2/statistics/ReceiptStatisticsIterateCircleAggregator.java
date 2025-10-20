@@ -32,8 +32,6 @@ public class ReceiptStatisticsIterateCircleAggregator {
         Map<String, Long> ordersByCustomer = new HashMap<>();
         Map<String, Long> itemQuantityByName = new HashMap<>();
         Map<String, Double> itemRevenueByName = new HashMap<>();
-        Map<String, Long> itemReceiptCountByName = new HashMap<>();
-        Map<String, Double> itemReceiptTotalByName = new HashMap<>();
         Map<String, Double> revenueByCity = new HashMap<>();
         Map<String, Long> ordersByCity = new HashMap<>();
         Map<ReceiptStatus, Double> revenueByStatus = new EnumMap<>(ReceiptStatus.class);
@@ -41,6 +39,10 @@ public class ReceiptStatisticsIterateCircleAggregator {
         Map<PriceTier, Double> revenueByPriceTier = new EnumMap<>(PriceTier.class);
         Map<String, Double> revenueByState = new HashMap<>();
         Map<String, Long> ordersByState = new HashMap<>();
+        ItemAverageReceiptMetrics.ItemAverageAccumulator itemAverageAccumulator =
+                ItemAverageReceiptMetrics.newAccumulator();
+        TotalAverageMetrics.TotalAverageAccumulator totalAverageAccumulator =
+                TotalAverageMetrics.newAccumulator();
 
         for (Receipt r : receipts) {
             totalOrders++;
@@ -51,19 +53,18 @@ public class ReceiptStatisticsIterateCircleAggregator {
                 totalItemsSold += item.getQuantity();
                 double itemRevenue = item.getUnitPrice() * item.getQuantity();
                 orderTotal += itemRevenue;
-                itemQuantityByName.merge(item.getName(), (long) item.getQuantity(), Long::sum);
-                itemRevenueByName.merge(item.getName(), itemRevenue, Double::sum);
-                itemsInReceipt.add(item.getName());
+                String itemName = item.getName();
+                itemQuantityByName.merge(itemName, (long) item.getQuantity(), Long::sum);
+                itemRevenueByName.merge(itemName, itemRevenue, Double::sum);
+                itemsInReceipt.add(itemName);
 
                 PriceTier tier = PriceTier.fromUnitPrice(item.getUnitPrice());
                 quantityByPriceTier.merge(tier, (long) item.getQuantity(), Long::sum);
                 revenueByPriceTier.merge(tier, itemRevenue, Double::sum);
             }
 
-            for (String itemName : itemsInReceipt) {
-                itemReceiptCountByName.merge(itemName, 1L, Long::sum);
-                itemReceiptTotalByName.merge(itemName, orderTotal, Double::sum);
-            }
+            itemAverageAccumulator.addResolved(orderTotal, itemsInReceipt);
+            totalAverageAccumulator.addResolved(orderTotal);
 
             totalRevenue += orderTotal;
             minReceipt = Math.min(minReceipt, orderTotal);
@@ -94,7 +95,9 @@ public class ReceiptStatisticsIterateCircleAggregator {
 
         stats.setTotalOrders(totalOrders);
         stats.setTotalRevenue(totalRevenue);
-        stats.setAverageReceiptAmount(totalOrders > 0 ? totalRevenue / totalOrders : 0);
+        TotalAverage totalAverage = totalAverageAccumulator.finish();
+        stats.setTotalAverage(totalAverage);
+        stats.setAverageReceiptAmount(totalAverage.averageReceiptAmount());
         stats.setMinReceiptAmount(totalOrders > 0 ? minReceipt : 0);
         stats.setMaxReceiptAmount(totalOrders > 0 ? maxReceipt : 0);
 
@@ -109,8 +112,7 @@ public class ReceiptStatisticsIterateCircleAggregator {
         stats.setTopCustomersByOrderCount(
                 TopMetrics.calculateTopCustomersByOrders(ordersByCustomer, revenueByCustomer));
         stats.setTopItemsByQuantity(TopMetrics.calculateTopItems(itemQuantityByName, itemRevenueByName));
-        stats.setItemAverageReceipts(
-                TopMetrics.calculateItemAverageReceipts(itemReceiptCountByName, itemReceiptTotalByName));
+        stats.setItemAverageReceipts(itemAverageAccumulator.finish());
         stats.setTopCitiesByRevenue(TopMetrics.calculateTopCities(revenueByCity, ordersByCity));
         stats.setRevenueByStatusRanking(TopMetrics.calculateStatusRevenue(revenueByStatus, ordersByStatus));
         stats.setSalesByPriceTier(TopMetrics.calculatePriceTierSales(quantityByPriceTier, revenueByPriceTier));
