@@ -8,14 +8,14 @@ import java.util.function.Supplier;
 import rj.lab1.generators.SimpleReceiptGenerator;
 import rj.lab1.model.Receipt;
 import rj.lab1.statistics.ReceiptStatistics;
-import rj.lab1.statistics.ReceiptStatisticsIterateCircleAggregator;
-import rj.lab1.statistics.ReceiptStatisticsStreamAggregator;
-import rj.lab1.statistics.ReceiptStatisticsStreamCustomAggregator;
+import rj.lab1.statistics.aggregators.complex.ReceiptStatisticsIterateCircleAggregator;
+import rj.lab1.statistics.aggregators.complex.ReceiptStatisticsStreamAggregator;
+import rj.lab1.statistics.aggregators.complex.ReceiptStatisticsStreamCustomAggregator;
 
 public class Main {
 
     // Тестируем только 5k и 250k
-    private static final int[] DATASET_SIZES = { 5_000, 250_000 };
+    private static final int[] DATASET_SIZES = { 5_000, 25_000, 250_000 };
 
     public static void main(String[] args) {
         // Простой генератор

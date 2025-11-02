@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package rj.lab1.statistics.aggregators.complex;
 
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -10,6 +10,8 @@ import java.util.Set;
 import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
 import rj.lab1.model.ReceiptStatus;
+import rj.lab1.statistics.*;
+import rj.lab1.statistics.metrics.ItemAverageReceiptMetrics;
 
 public class ReceiptStatisticsIterateCircleAggregator {
 

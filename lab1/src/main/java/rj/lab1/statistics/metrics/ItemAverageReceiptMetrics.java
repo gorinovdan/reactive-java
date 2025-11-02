@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package rj.lab1.statistics.metrics;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -12,6 +12,7 @@ import java.util.stream.Collector;
 
 import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
+import rj.lab1.statistics.ItemAverageReceipt;
 
 /**
  * Utilities for calculating {@link ItemAverageReceipt} metrics independently

@@ -7,6 +7,7 @@ import java.util.Set;
 
 import rj.lab1.model.Receipt;
 import rj.lab1.model.ReceiptStatus;
+import rj.lab1.statistics.metrics.ItemAverageReceiptMetrics;
 
 /**
  * Utility class that turns aggregated maps into sorted top metrics lists.

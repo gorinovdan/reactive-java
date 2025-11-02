@@ -1,4 +1,4 @@
-package rj.lab1.statistics.Collectors;
+package rj.lab1.statistics.aggregators.complex;
 
 import rj.lab1.model.Receipt;
 import rj.lab1.statistics.ReceiptStatistics;
