@@ -4,10 +4,7 @@ import rj.lab1.model.Item;
 import rj.lab1.model.Receipt;
 import rj.lab1.statistics.ItemSales;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -28,14 +25,20 @@ public class TopItemsByQuantityAggregator {
             }
         }
 
-        return aggregated.entrySet().stream()
-                .map(e -> new ItemSales(
-                        e.getKey(),
-                        (long) e.getValue()[0],
-                        e.getValue()[1]
-                ))
-                .sorted(ItemSales.byQuantityAndRevenueDescending())
-                .toList();
+        List<ItemSales> itemSalesList = new ArrayList<>();
+        for (Map.Entry<String, double[]> entry : aggregated.entrySet()) {
+            String itemName = entry.getKey();
+            double[] values = entry.getValue();
+            itemSalesList.add(new ItemSales(
+                    itemName,
+                    (long) values[0],
+                    values[1]
+            ));
+        }
+
+        itemSalesList.sort(ItemSales.byQuantityAndRevenueDescending());
+
+        return itemSalesList;
     }
 
 
