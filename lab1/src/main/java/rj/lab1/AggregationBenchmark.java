@@ -22,12 +22,6 @@ import java.util.function.Function;
 public class AggregationBenchmark {
 
     private static final Map<String, List<Long>> results = new LinkedHashMap<>();
-    private static final List<String> metrics = Arrays.asList(
-            "TotalRevenue.circleAggregate", "TotalRevenue.streamAggregate", "TotalRevenue.customCollectorAggregate",
-            "TopItemsByQuantity.circle", "TopItemsByQuantity.stream", "TopItemsByQuantity.collector",
-            "ItemAverageReceipt.circle", "ItemAverageReceipt.stream", "ItemAverageReceipt.collector",
-            "ReceiptStatistics.circle", "ReceiptStatistics.stream", "ReceiptStatistics.collector"
-    );
 
     private static void benchmark(String label, Function<List<Receipt>, ?> aggregator, List<Receipt> receipts) {
         Instant start = Instant.now();
