@@ -1,5 +1,7 @@
 package rj.lab1;
 
+import com.google.gson.Gson;
+import lombok.SneakyThrows;
 import rj.lab1.generators.SimpleReceiptGenerator;
 import rj.lab1.model.Receipt;
 import rj.lab1.statistics.aggregators.complex.ReceiptStatisticsIterateCircleAggregator;
@@ -11,20 +13,32 @@ import rj.lab1.statistics.aggregators.item_average_receipt.ItemAverageStreamCust
 import rj.lab1.statistics.aggregators.top_items_by_quantity.TopItemsByQuantityAggregator;
 import rj.lab1.statistics.aggregators.total_revenue.TotalRevenueAggregators;
 
+import java.io.FileWriter;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 public class AggregationBenchmark {
+
+    private static final Map<String, List<Long>> results = new LinkedHashMap<>();
+    private static final List<String> metrics = Arrays.asList(
+            "TotalRevenue.circleAggregate", "TotalRevenue.streamAggregate", "TotalRevenue.customCollectorAggregate",
+            "TopItemsByQuantity.circle", "TopItemsByQuantity.stream", "TopItemsByQuantity.collector",
+            "ItemAverageReceipt.circle", "ItemAverageReceipt.stream", "ItemAverageReceipt.collector",
+            "ReceiptStatistics.circle", "ReceiptStatistics.stream", "ReceiptStatistics.collector"
+    );
 
     private static void benchmark(String label, Function<List<Receipt>, ?> aggregator, List<Receipt> receipts) {
         Instant start = Instant.now();
         aggregator.apply(receipts);
         Instant end = Instant.now();
-        System.out.printf("%-40s -> %6d ms%n", label, Duration.between(start, end).toMillis());
+        long elapsed = Duration.between(start, end).toMillis();
+        System.out.printf("%-40s -> %6d ms%n", label, elapsed);
+        results.computeIfAbsent(label, k -> new ArrayList<>()).add(elapsed);
     }
 
+    @SneakyThrows
     public static void main(String[] args) {
         int[] sizes = {5_000, 25_000, 250_000};
 
@@ -56,6 +70,11 @@ public class AggregationBenchmark {
             benchmark("ReceiptStatistics.stream", ReceiptStatisticsStreamAggregator::aggregate, receipts);
             benchmark("ReceiptStatistics.collector", ReceiptStatisticsStreamCustomAggregator::aggregate, receipts);
         }
+
+        Gson gson = new Gson();
+        try (FileWriter writer = new FileWriter("benchmark_results.json")) {
+            gson.toJson(results, writer);
+        }
+        System.out.println("Results saved to benchmark_results.json");
     }
 }
-

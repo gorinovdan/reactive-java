@@ -1,88 +1,91 @@
+import subprocess
+import json
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-import os
 
-def load_data(csv_path=None):
+
+def run_java_benchmark():
     """
-    Загружает данные из CSV или запрашивает ввод вручную.
+    Запускает Java-бенчмарк и читает benchmark_results.json.
     """
-    if csv_path and os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
-        print(f"✅ Загружено {len(df)} строк из '{csv_path}'")
-    else:
-        print("CSV не найден. Введите данные вручную (пример ниже):")
-        print("Dataset Receipts Iterative Stream Custom")
-        print("Пример: Simple 5000 45 62 59")
-        print("Введите пустую строку для завершения.")
+    # print("▶ Запуск Java-бенчмарка...")
+    # subprocess.run(["java", "-cp", "/Users/Shared/Alexander/Education/reactive-java/lab1/target/classes", "/Users/Shared/Alexander/Education/reactive-java/lab1/src/main/java/rj/lab1/AggregationBenchmark.java"], check=True)
+    # print("✅ Java-бенчмарк завершён.")
 
-        rows = []
-        while True:
-            line = input("> ").strip()
-            if not line:
-                break
-            parts = line.split()
-            if len(parts) != 5:
-                print("Ошибка: нужно 5 значений.")
-                continue
-            dataset, receipts, iterative, stream, custom = parts
-            rows.append({
-                "Dataset": dataset,
-                "Receipts": int(receipts),
-                "Iterative": float(iterative),
-                "Stream": float(stream),
-                "Custom": float(custom),
-            })
-        df = pd.DataFrame(rows)
-
-    return df
+    with open("benchmark_results.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data
 
 
-def plot_benchmarks_bar(df, save=False):
+def plot_aggregator_performance(data):
     """
-    Строит столбчатые диаграммы для каждого типа набора (Simple / Complex)
-    с логарифмической шкалой по оси Y.
+    Строит графики по результатам benchmark_results.json.
     """
-    datasets = df["Dataset"].unique()
+    # Преобразуем словарь в формат DataFrame
+    metrics = ["TotalRevenue.circleAggregate", "TotalRevenue.streamAggregate", "TotalRevenue.customCollectorAggregate",
+               "TopItemsByQuantity.circle", "TopItemsByQuantity.stream", "TopItemsByQuantity.collector",
+               "ItemAverageReceipt.circle", "ItemAverageReceipt.stream", "ItemAverageReceipt.collector",
+               "ReceiptStatistics.circle", "ReceiptStatistics.stream", "ReceiptStatistics.collector"]
 
-    for ds in datasets:
-        subset = df[df["Dataset"] == ds].sort_values("Receipts")
+    df = pd.DataFrame({
+        "Metric": metrics,
+        "5000": [data[m][0] for m in metrics],
+        "25000": [data[m][1] for m in metrics],
+        "250000": [data[m][2] for m in metrics]
+    })
 
-        x = np.arange(len(subset))
-        width = 0.25
+    # Группы метрик
+    groups = {
+        "TotalRevenue": ["TotalRevenue.circleAggregate", "TotalRevenue.streamAggregate", "TotalRevenue.customCollectorAggregate"],
+        "TopItemsByQuantity": ["TopItemsByQuantity.circle", "TopItemsByQuantity.stream", "TopItemsByQuantity.collector"],
+        "ItemAverageReceipt": ["ItemAverageReceipt.circle", "ItemAverageReceipt.stream", "ItemAverageReceipt.collector"],
+        "ReceiptStatistics": ["ReceiptStatistics.circle", "ReceiptStatistics.stream", "ReceiptStatistics.collector"],
+    }
 
-        fig, ax = plt.subplots(figsize=(8, 5))
-        bars1 = ax.bar(x - width, subset["Iterative"], width, label="Iterative")
-        bars2 = ax.bar(x, subset["Stream"], width, label="Stream")
-        bars3 = ax.bar(x + width, subset["Custom"], width, label="Custom collector")
+    # Цвета реализаций
+    implementations = {
+        "circle": "#4e79a7",
+        "stream": "#f28e2b",
+        "customCollector": "#e15759",
+    }
 
-        ax.set_xlabel("Receipts count")
-        ax.set_ylabel("Time (ms, log scale)")
-        ax.set_title(f"Benchmark: {ds} dataset (logarithmic scale, lower is better)")
+    bar_width = 0.25
 
-        ax.set_xticks(x)
-        ax.set_xticklabels([f"{int(v):,}".replace(",", " ") for v in subset["Receipts"]])
+    # Построение графиков
+    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+    axes = axes.flatten()
 
-        ax.set_yscale("log")  # ← вот ключевая строка!
-        ax.legend()
-        ax.grid(axis="y", linestyle="--", alpha=0.6, which="both")
+    for idx, (group_name, group_metrics) in enumerate(groups.items()):
+        sub_df = df[df["Metric"].isin(group_metrics)]
+        sub_df["Implementation"] = sub_df["Metric"].apply(
+            lambda x: "circle" if "circle" in x
+            else "stream" if "stream" in x
+            else "customCollector"
+        )
 
-        plt.tight_layout()
+        x = range(3)  # 3 размера: 5000, 25000, 250000
 
-        if save:
-            filename = f"{ds.lower()}_bar_log.png"
-            plt.savefig(filename, dpi=150)
-            print(f"💾 Сохранено: {filename}")
+        for i, impl in enumerate(["circle", "stream", "customCollector"]):
+            impl_vals = sub_df[sub_df["Implementation"] == impl][["5000", "25000", "250000"]].values.flatten()
+            axes[idx].bar([xj + (i - 1) * bar_width for xj in x],
+                          impl_vals,
+                          width=bar_width,
+                          color=implementations[impl],
+                          label=impl)
 
-        plt.show()
+        axes[idx].set_xticks(x)
+        axes[idx].set_xticklabels(["5,000", "25,000", "250,000"])
+        axes[idx].set_yscale("log")
+        axes[idx].set_title(group_name)
+        axes[idx].set_ylabel("Execution time (ms, log scale)")
+        axes[idx].legend(title="Implementation")
 
-
-def main():
-    csv_path = input("Введите путь к CSV (или Enter для ручного ввода): ").strip() or None
-    df = load_data(csv_path)
-    save_choice = input("Сохранить графики в PNG? (y/n): ").strip().lower().startswith("y")
-    plot_benchmarks_bar(df, save=save_choice)
+    plt.suptitle("Aggregator Performance by Metric and Implementation (log scale)",
+                 fontsize=14, fontweight="bold")
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.show()
 
 
 if __name__ == "__main__":
-    main()
+    data = run_java_benchmark()
+    plot_aggregator_performance(data)
