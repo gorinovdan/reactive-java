@@ -1,8 +1,8 @@
-package rj.lab1.model;
+package rj.lab2.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import rj.lab1.util.LatencySimulator;
+import rj.lab2.util.LatencySimulator;
 
 @Getter
 @Setter

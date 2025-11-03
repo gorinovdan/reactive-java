@@ -1,4 +1,4 @@
-package rj.lab1.statistics.Collectors;
+package rj.lab2.statistics.aggregators.complex;
 
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -7,8 +7,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import rj.lab1.model.Receipt;
-import rj.lab1.statistics.ReceiptStatistics;
+import rj.lab2.model.Receipt;
+import rj.lab2.statistics.ReceiptStatistics;
 
 public class ReceiptStatisticsCollector implements Collector<Receipt, ReceiptStatisticsAccumulator, ReceiptStatistics> {
 

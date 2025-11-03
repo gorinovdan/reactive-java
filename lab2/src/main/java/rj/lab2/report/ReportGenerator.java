@@ -1,4 +1,4 @@
-package rj.lab1.report;
+package rj.lab2.report;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import rj.lab1.statistics.ReceiptStatistics;
+import rj.lab2.statistics.ReceiptStatistics;
 
 public final class ReportGenerator {
 

@@ -1,11 +1,12 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics.aggregators.complex;
 
 import java.util.List;
 import java.util.Spliterator;
 import java.util.stream.StreamSupport;
 
-import rj.lab1.model.Receipt;
-import rj.lab1.statistics.spliterator.ReceiptSpliterator;
+import rj.lab2.model.Receipt;
+import rj.lab2.statistics.ReceiptStatistics;
+import rj.lab2.statistics.spliterator.ReceiptSpliterator;
 
 public final class ReceiptStatisticsSpliteratorAggregator {
 

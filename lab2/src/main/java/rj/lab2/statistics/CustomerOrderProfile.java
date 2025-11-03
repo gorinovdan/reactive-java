@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics;
 
 import java.util.Comparator;
 

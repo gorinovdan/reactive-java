@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics;
 
 /**
  * Price tiers that group items by their unit price to build categorical

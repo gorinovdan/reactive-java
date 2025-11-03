@@ -1,10 +1,10 @@
-package rj.lab1.statistics.spliterator;
+package rj.lab2.statistics.spliterator;
 
 import java.util.List;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 
-import rj.lab1.model.Receipt;
+import rj.lab2.model.Receipt;
 
 /**
  * Spliterator tuned for chunking {@link Receipt} lists into moderately sized batches.

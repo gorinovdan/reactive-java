@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics;
 
 import java.util.List;
 import java.util.Map;
@@ -6,7 +6,7 @@ import java.util.StringJoiner;
 
 import lombok.Getter;
 import lombok.Setter;
-import rj.lab1.model.ReceiptStatus;
+import rj.lab2.model.ReceiptStatus;
 
 @Setter
 @Getter

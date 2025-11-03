@@ -1,4 +1,4 @@
-package rj.lab1.generators;
+package rj.lab2.generators;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -8,11 +8,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 
-import rj.lab1.model.Customer;
-import rj.lab1.model.Item;
-import rj.lab1.model.Receipt;
-import rj.lab1.model.ReceiptStatus;
-import rj.lab1.model.ShippingAddress;
+import rj.lab2.model.Customer;
+import rj.lab2.model.Item;
+import rj.lab2.model.Receipt;
+import rj.lab2.model.ReceiptStatus;
+import rj.lab2.model.ShippingAddress;
 
 public class SimpleReceiptGenerator {
 

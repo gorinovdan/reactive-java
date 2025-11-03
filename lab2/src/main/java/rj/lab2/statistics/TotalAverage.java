@@ -1,4 +1,4 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics;
 
 /**
  * Summary information about the overall average receipt amount across all orders.

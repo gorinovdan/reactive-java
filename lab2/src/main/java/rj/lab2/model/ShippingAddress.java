@@ -1,4 +1,4 @@
-package rj.lab1.model;
+package rj.lab2.model;
 
 public record ShippingAddress(
         String addressLine1,

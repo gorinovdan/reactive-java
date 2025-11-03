@@ -1,4 +1,4 @@
-package rj.lab1.util;
+package rj.lab2.util;
 
 import java.time.Duration;
 import java.util.Objects;

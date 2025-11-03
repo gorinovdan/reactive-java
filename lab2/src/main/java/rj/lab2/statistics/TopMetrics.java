@@ -1,12 +1,12 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import rj.lab1.model.Receipt;
-import rj.lab1.model.ReceiptStatus;
+import rj.lab2.model.Receipt;
+import rj.lab2.model.ReceiptStatus;
 
 /**
  * Utility class that turns aggregated maps into sorted top metrics lists.

@@ -1,8 +1,8 @@
-package rj.lab1.statistics;
+package rj.lab2.statistics;
 
 import java.util.Comparator;
 
-import rj.lab1.model.ReceiptStatus;
+import rj.lab2.model.ReceiptStatus;
 
 /**
  * Combined revenue and volume metrics for a particular order status.

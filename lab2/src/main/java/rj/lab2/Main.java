@@ -1,4 +1,4 @@
-package rj.lab1;
+package rj.lab2;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -8,16 +8,16 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
-import rj.lab1.generators.SimpleReceiptGenerator;
-import rj.lab1.model.Receipt;
-import rj.lab1.report.ReportGenerator;
-import rj.lab1.report.ReportGenerator.DatasetReportRow;
-import rj.lab1.statistics.ItemAverageReceipt;
-import rj.lab1.statistics.ReceiptStatistics;
-import rj.lab1.statistics.ReceiptStatisticsIterateCircleAggregator;
-import rj.lab1.statistics.ReceiptStatisticsStreamAggregator;
-import rj.lab1.statistics.ReceiptStatisticsStreamCustomAggregator;
-import rj.lab1.statistics.TotalAverage;
+import rj.lab2.generators.SimpleReceiptGenerator;
+import rj.lab2.model.Receipt;
+import rj.lab2.report.ReportGenerator;
+import rj.lab2.report.ReportGenerator.DatasetReportRow;
+import rj.lab2.statistics.ItemAverageReceipt;
+import rj.lab2.statistics.ReceiptStatistics;
+import rj.lab2.statistics.TotalAverage;
+import rj.lab2.statistics.aggregators.complex.ReceiptStatisticsIterateCircleAggregator;
+import rj.lab2.statistics.aggregators.complex.ReceiptStatisticsStreamAggregator;
+import rj.lab2.statistics.aggregators.complex.ReceiptStatisticsStreamCustomAggregator;
 
 public class Main {
 

@@ -1,4 +1,4 @@
-package rj.lab1.model;
+package rj.lab2.model;
 
 import lombok.Getter;
 import lombok.Setter;
