@@ -37,10 +37,10 @@ public class StatisticsMicroBenchmarks {
 
     private static final int SPLITERATOR_MIN_BATCH = 256;
 
-    @Param({ "5000", "25000", "250000" })
+    @Param({ "1000", "3000", "5000" })
     private int datasetSize;
 
-    @Param({ "1" })
+    @Param({ "0" })
     private long itemNameDelayMillis;
 
     private List<Receipt> receipts;
